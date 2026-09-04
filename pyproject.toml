@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "agnipariksha"
+version = "0.1.0"
+description = "Burn-in screening that reads the drift, not just the final reading"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Team Bit2Byte"},
+]
+
+dependencies = [
+    "numpy>=2.0,<3.0",
+    "pandas>=2.0,<3.0",
+    "scipy>=1.0,<2.0",
+    "scikit-learn>=1.4",
+    "mapie>=0.8",
+    "shap>=0.44",
+    "streamlit>=1.31",
+    "plotly>=5.0,<6.0",
+    "pyarrow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
