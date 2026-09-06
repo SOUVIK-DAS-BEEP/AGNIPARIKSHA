@@ -60,13 +60,11 @@ def run_pipeline(
     # 4. Arrhenius Fit
     df = apply_arrhenius_fit(df)
     
-    # 5. ML Forecast (Train on PAT survivors only)
-    survivors = df[~df["pat_flag"]].copy()
-    if len(survivors) == 0:
-        raise RuntimeError("No chips survived PAT. Cannot train forecaster.")
-        
-    X_train = build_features(survivors)
-    y_train = survivors[f"{COL_I_LEAK}_168h"].values
+    # 5. ML Forecast
+    # Train on all chips — pat_flag uses 168h data and is
+    # not available at deployment.
+    X_train = build_features(df)
+    y_train = df[f"{COL_I_LEAK}_168h"].values
     
     base_model = train_forecaster(X_train, y_train, model_type)
     

@@ -7,10 +7,10 @@ physics-based drift rates.
 Key design constraints (SPEC.md Section 4, Stage 5):
   - NO DATA LEAKAGE: Features must not include or derive from 96h or 168h
     measurements.
-  - TRAIN ON PAT SURVIVORS ONLY: Early-failure chips (2500+ µA) would
-    dominate the regression loss. We train the forecaster only on chips
-    that pass the PAT screen, focusing the model on the subtle 35-50 µA
-    latent-defect band.
+  - TRAIN ON ALL CHIPS: pat_flag uses 168h data and is not available
+    at deployment. Filtering to PAT survivors before training is
+    selection leakage — the model would be trained on a population
+    that cannot be identified at inference time.
   - GroupKFold on lot_id: A random split would leak lot-level info.
 """
 
@@ -120,23 +120,19 @@ def predict_168h(model: Any, X: pd.DataFrame) -> np.ndarray:
 def evaluate_forecaster_cv(df_wide: pd.DataFrame, model_type: str = "rf") -> dict[str, float]:
     """
     Evaluate the forecaster using GroupKFold on lot_id.
-    TRAINS ONLY ON PAT SURVIVORS.
+    Trains on ALL chips — pat_flag uses 168h data and is not available
+    at deployment.
     
     Returns metrics dict.
     """
-    # 1. Filter to PAT survivors for training/eval
-    if "pat_flag" not in df_wide.columns:
-        raise ValueError("pat_flag missing. Run pat_screen first.")
-        
-    survivors = df_wide[~df_wide["pat_flag"]].copy()
+    # Train on all chips — pat_flag uses 168h data and is
+    # not available at deployment.
+    y = df_wide[f"{COL_I_LEAK}_168h"].values
+    X = build_features(df_wide)
+    groups = df_wide[COL_LOT_ID].values
     
-    # 2. Target and Features
-    y = survivors[f"{COL_I_LEAK}_168h"].values
-    X = build_features(survivors)
-    groups = survivors[COL_LOT_ID].values
-    
-    # 3. Report training target distribution to prove we excluded extremes
-    print(f"--- Training Target Distribution (PAT survivors only) ---")
+    # Report training target distribution
+    print(f"--- Training Target Distribution (all chips) ---")
     print(f"Target: {COL_I_LEAK}_168h")
     print(f"Min:    {np.min(y):.2f} µA")
     print(f"Median: {np.median(y):.2f} µA")
@@ -171,13 +167,14 @@ def evaluate_forecaster_cv(df_wide: pd.DataFrame, model_type: str = "rf") -> dic
 
 def apply_forecast(df_wide: pd.DataFrame, model_type: str = "rf") -> pd.DataFrame:
     """
-    Train on PAT survivors and predict for ALL chips.
+    Train on all chips and predict for all chips.
     This creates the 'pred_168h' column.
+    
+    Train on all chips — pat_flag uses 168h data and is not available
+    at deployment.
     """
-    # 1. Filter to PAT survivors for training
-    survivors = df_wide[~df_wide["pat_flag"]].copy()
-    y_train = survivors[f"{COL_I_LEAK}_168h"].values
-    X_train = build_features(survivors)
+    y_train = df_wide[f"{COL_I_LEAK}_168h"].values
+    X_train = build_features(df_wide)
     
     # 2. Train model
     model = train_forecaster(X_train, y_train, model_type)

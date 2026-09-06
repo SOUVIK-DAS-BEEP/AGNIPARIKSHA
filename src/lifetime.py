@@ -8,7 +8,7 @@ Key design constraints (SPEC.md Section 4, Stage 6):
   - AF is heavily sensitive to Activation Energy (Ea). Therefore, NEVER
     report a single absolute lifetime. Report a range (Ea=0.7 to 1.0).
   - Report `lifetime_rank_in_lot` which is Ea-independent and trustworthy.
-  - Flag on the CONSERVATIVE (shorter) end of the range.
+  - Flag only when even the OPTIMISTIC (Ea=1.0) projection is below mission life.
   - If a <= 0, cap at 50 years and flag `lifetime_capped = True`.
 """
 
@@ -154,8 +154,11 @@ def apply_lifetime_projection(df_wide: pd.DataFrame) -> pd.DataFrame:
     df["life_years_ea10"] = y_10_list
     df["lifetime_capped"] = capped_list
     
-    # Flag on the CONSERVATIVE (shorter) end
-    df["lifetime_flag"] = df["life_years_ea07"] < MISSION_LIFE_YEARS
+    # A chip is only lifetime-flagged if it fails under both conservative
+    # and optimistic activation-energy assumptions. If Ea uncertainty alone
+    # could save the chip, we defer to the other screens (PAT, multivariate,
+    # conformal) rather than rejecting on lifetime.
+    df["lifetime_flag"] = df["life_years_ea10"] < MISSION_LIFE_YEARS
     
     # Compute rank PER LOT
     df["life_rank_in_lot"] = np.nan

@@ -52,6 +52,9 @@ def predict_with_interval(mapie: MapieRegressor, X: pd.DataFrame, alpha: float =
     # y_pis shape is (n_samples, 2, n_alphas). We only have 1 alpha.
     y_lower = y_pis[:, 0, 0]
     y_upper = y_pis[:, 1, 0]
+    # Leakage current cannot be physically negative. Clamp the lower
+    # bound so reliability engineers don't see nonsensical intervals.
+    y_lower = np.maximum(y_lower, 0.0)
     return y_pred, y_lower, y_upper
 
 

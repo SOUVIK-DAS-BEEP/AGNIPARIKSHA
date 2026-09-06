@@ -97,6 +97,7 @@ def test_apply_lifetime_projection(test_data: pd.DataFrame):
     # CRITICAL: NO scalar projected_life_years
     assert "projected_life_years" not in df_life.columns
     
-    # Flag should fire on the conservative (ea07) end
-    expected_flags = df_life["life_years_ea07"] < MISSION_LIFE_YEARS
+    # Flag should fire on the optimistic (ea10) end — only reject when
+    # even the best-case Ea projection is below mission life.
+    expected_flags = df_life["life_years_ea10"] < MISSION_LIFE_YEARS
     assert (df_life["lifetime_flag"] == expected_flags).all()

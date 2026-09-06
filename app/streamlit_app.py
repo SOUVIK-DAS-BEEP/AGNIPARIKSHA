@@ -456,6 +456,11 @@ if st.session_state.get("run_success", False):
             fig_traj.update_layout(
                 xaxis_title="Burn-In Time [hours]",
                 yaxis_title="Leakage Current [µA]",
+                # Cap Y-axis at 100 µA: the story is the latent-defect band
+                # (10-50 µA) against the spec limit (50 µA). Early-fail chips
+                # (~12,000 µA) intentionally exceed the chart boundary —
+                # without this cap they compress everything else to invisibility.
+                yaxis_range=[0, 100],
                 hovermode="closest",
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
@@ -589,6 +594,13 @@ if st.session_state.get("run_success", False):
                     font=dict(color="#f1f5f9")
                 )
                 st.plotly_chart(fig_recall, use_container_width=True)
+                st.caption(
+                    "Measured on synthetic data with known ground truth. PAT scores 0 "
+                    "because latent-defect chips are, by definition, within-spec at 168h "
+                    "— that is what makes them 'latent'. This validates the method "
+                    "against physics we injected; real-world performance requires "
+                    "validation on production silicon."
+                )
                 
             with rc2:
                 conf_level = int((1-alpha_used)*100)
