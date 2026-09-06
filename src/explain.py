@@ -29,14 +29,16 @@ def get_explainer(model: Any) -> shap.TreeExplainer:
     if model_id not in _EXPLAINER_CACHE:
         # Assuming the model is a RandomForest or similar tree ensemble.
         # If MAPIE wraps it, we must extract the base estimator.
-        # However, MAPIE method="plus" trains one base estimator on the whole dataset.
-        if hasattr(model, "single_estimator_"):
-            # MAPIE cv=5 trains one single_estimator_ on the whole dataset
+        base = model
+        if hasattr(model, "estimator_"):
+            # MAPIE >= 0.8 uses an EnsembleRegressor in estimator_
+            if hasattr(model.estimator_, "single_estimator_"):
+                base = model.estimator_.single_estimator_
+            else:
+                base = model.estimator_
+        elif hasattr(model, "single_estimator_"):
+            # Older MAPIE versions
             base = model.single_estimator_
-        elif hasattr(model, "estimator_"):
-            base = model.estimator_
-        else:
-            base = model
             
         _EXPLAINER_CACHE[model_id] = shap.TreeExplainer(base)
         
